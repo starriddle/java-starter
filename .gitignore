@@ -1,0 +1,33 @@
+target/
+out/
+bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### eclipse ###
+.settings/
+.project
+.classpath
+
+### NetBeans ###
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+### STS ###
+.apt_generated
+.factorypath
+.springBeans
+
+### eclipse workspace ###
+Servers/
+.metadata/
+.recommenders
+RemoteSystemsTempFiles/
