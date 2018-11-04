@@ -28,7 +28,7 @@ package com.cyl.algorithm.pta.pat.basic;
 
 import java.util.Scanner;
 
-public class Callatz {
+public class PATB1001 {
 
     public static void main(String[] args){
         Scanner scanner = new Scanner(System.in);
