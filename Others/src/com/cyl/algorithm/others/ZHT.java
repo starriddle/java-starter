@@ -1,4 +1,4 @@
-package com.cyl.algorithm.pta.pat.other;
+package com.cyl.algorithm.others;
 
 /*
  * 九宫格——纵横图
