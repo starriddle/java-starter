@@ -1,0 +1,75 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.starriddle.starter.java</groupId>
+    <artifactId>java-starter</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>Java Starter</name>
+
+    <properties>
+        <!--
+            定义 maven-sources-plugin & maven-compiler-plugin 的 encoding 属性 默认值
+            如不定义默认值且未在插件中定义encoding属性，则使用平台的字符集编码
+         -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!--
+            定义输出报告的encoding默认值
+         -->
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!--
+            定义 maven-compiler-plugin 的 source & target 属性(java版本)
+            如不定义且未在插件中定义source和target属性，3.8(20180726) 以前 默认 1.5，以后 默认 1.6
+         -->
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+
+    <build>
+        <plugins>
+            <!-- 指定源码插件版本，自定义属性 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <!-- POM 4.0.0 默认版本 2.6 -->
+                <version>3.1.0</version>
+                <configuration>
+                <!-- 默认值可用表达式定义： ${project.build.sourceEncoding}
+                    也可在此处自定义
+                    如未定义则使用平台编码
+                 -->
+                <encoding>UTF-8</encoding>
+            </configuration>
+        </plugin>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <!-- POM 4.0.0 默认3.1 -->
+            <version>3.8.0</version>
+                <configuration>
+                    <!--
+                        可用专属表达式定义： ${maven.compiler.source}
+                        也可在此处自定义
+                        如未定义，3.8(20180726) 以前 默认 1.5，以后 默认 1.6
+                     -->
+                    <source>1.8</source>
+                    <!--
+                        可用专属表达式定义： ${maven.compiler.target}
+                        也可在此处自定义
+                        如未定义，3.8(20180726) 以前 默认 1.5，以后 默认 1.6
+                     -->
+                    <target>1.8</target>
+                    <!-- 默认值可用表达式定义： ${project.build.sourceEncoding}
+                        也可用专属表达式定义： ${encoding}
+                        也可在此处自定义
+                        如未定义则使用平台编码
+                     -->
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
