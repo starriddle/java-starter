@@ -31,3 +31,14 @@ Servers/
 .metadata/
 .recommenders
 RemoteSystemsTempFiles/
+
+### Others ###
+*~
+~$*
+.~lock.*
+~*.tmp
+*.~*
+.DS_Store
+.ds_store
+._*
+Thumbs.db
