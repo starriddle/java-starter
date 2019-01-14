@@ -13,91 +13,134 @@ package com.starriddle.starter.java.multithread;
  */
 public class GlobalIdGenerator {
 
+    /**
+     * 机器 id 位数 5 bit
+     */
+    private static final long WORKER_ID_BITS = 5L;
+
+    /**
+     * 机房 id 位数 5 bit
+     */
+    private static final long DATA_CENTER_ID_BITS = 5L;
+
+    /**
+     * 序列号 id 位数 12 bit
+     */
+    private static final long SEQUENCE_ID_BITS = 12L;
+
+    /**
+     * 二进制运算，5 bit最多只能有32个数字，机器id最多只能是32以内
+     */
+    private static final long MAX_WORKER_ID = ~(-1L << WORKER_ID_BITS);
+
+    /**
+     * 二进制运算，5 bit最多只能有32个数字，机房id最多只能是32以内
+     */
+    private static final long MAX_DATA_CENTER_ID = ~(-1L << DATA_CENTER_ID_BITS);
+
+    /**
+     * 二进制运算，12 bit最多只能有4096个数字，序列号最多只能是4096以内
+     */
+    private static final long MAX_SEQUENCE_ID = ~(-1L << SEQUENCE_ID_BITS);
+
+    /**
+     * 机器 id 左移 12 位
+     */
+    private static final long WORKER_ID_SHIFT = SEQUENCE_ID_BITS;
+
+    /**
+     * 机房 id 左移 12 + 5 = 17 位
+     */
+    private static final long DATA_CENTER_ID_SHIFT = SEQUENCE_ID_BITS + WORKER_ID_BITS;
+
+    /**
+     * 时间戳 左移 12 + 5+ 5 = 22 位
+     */
+    private static final long TIMESTAMP_LEFT_SHIFT = SEQUENCE_ID_BITS + WORKER_ID_BITS + DATA_CENTER_ID_BITS;
+
+    /**
+     * 系统标记时间(纪元时间)：ID内毫秒数 = 当前系统时间 - 标记时间
+     */
+    private static final long EPOCH = 1532007000000L;
+
+    /**
+     * 机房 id
+     */
+    private long dataCenterId;
+
+    /**
+     * 机器 id
+     */
     private long workerId;
-    private long datacenterId;
-    private long sequence;
 
-    public GlobalIdGenerator(long workerId, long datacenterId, long sequence) {
-        // sanity check for workerId
-        // 这儿不就检查了一下，要求就是你传递进来的机房id和机器id不能超过32，不能小于0
-        if (workerId > maxWorkerId || workerId < 0) {
-            throw new IllegalArgumentException(
-                    String.format("worker Id can't be greater than %d or less than 0", maxWorkerId));
-        }
-        if (datacenterId > maxDatacenterId || datacenterId < 0) {
-            throw new IllegalArgumentException(
-                    String.format("datacenter Id can't be greater than %d or less than 0", maxDatacenterId));
-        }
-        System.out.printf(
-                "worker starting. timestamp left shift %d, datacenter id bits %d, worker id bits %d, sequence bits %d, workerid %d",
-                timestampLeftShift, datacenterIdBits, workerIdBits, sequenceBits, workerId);
+    /**
+     * 序列 id
+     */
+    private long sequenceId;
 
-        this.workerId = workerId;
-        this.datacenterId = datacenterId;
-        this.sequence = sequence;
-    }
-
-    private long twepoch = 1288834974657L;
-
-    private long workerIdBits = 5L;
-    private long datacenterIdBits = 5L;
-
-    // 这个是二进制运算，就是 5 bit最多只能有31个数字，也就是说机器id最多只能是32以内
-    private long maxWorkerId = -1L ^ (-1L << workerIdBits);
-
-    // 这个是一个意思，就是 5 bit最多只能有31个数字，机房id最多只能是32以内
-    private long maxDatacenterId = -1L ^ (-1L << datacenterIdBits);
-    private long sequenceBits = 12L;
-
-    private long workerIdShift = sequenceBits;
-    private long datacenterIdShift = sequenceBits + workerIdBits;
-    private long timestampLeftShift = sequenceBits + workerIdBits + datacenterIdBits;
-    private long sequenceMask = -1L ^ (-1L << sequenceBits);
-
+    /**
+     * 记录最近一次生成id使用的时间戳
+     */
     private long lastTimestamp = -1L;
 
-    public long getWorkerId() {
-        return workerId;
-    }
+    public GlobalIdGenerator(long dataCenterId, long workerId, long sequenceId) {
+        // 合理性检查：要求传递进来的机房id和机器id不能超过32，不能小于0
+        if (workerId > MAX_WORKER_ID || workerId < 0) {
+            throw new IllegalArgumentException(
+                    String.format("worker Id can't be greater than %d or less than 0", MAX_WORKER_ID));
+        }
+        if (dataCenterId > MAX_DATA_CENTER_ID || dataCenterId < 0) {
+            throw new IllegalArgumentException(
+                    String.format("dataCenter Id can't be greater than %d or less than 0", MAX_DATA_CENTER_ID));
+        }
+        System.out.printf("worker starting. \n" +
+                "timestamp left shift %d, dataCenter id bits %d, worker id bits %d, sequence id bits %d. \n" +
+                "Maximum: dataCenterId %d, workerId %d, sequenceId %d. \n" +
+                "Current: dataCenterId %d, workerId %d, sequenceId %d. \n",
+                TIMESTAMP_LEFT_SHIFT, DATA_CENTER_ID_BITS, WORKER_ID_BITS, SEQUENCE_ID_BITS,
+                MAX_DATA_CENTER_ID, MAX_WORKER_ID, MAX_SEQUENCE_ID, dataCenterId, workerId, sequenceId);
 
-    public long getDatacenterId() {
-        return datacenterId;
-    }
-
-    public long getTimestamp() {
-        return System.currentTimeMillis();
+        this.workerId = workerId;
+        this.dataCenterId = dataCenterId;
+        this.sequenceId = sequenceId;
     }
 
     public synchronized long nextId() {
-        // 这儿就是获取当前时间戳，单位是毫秒
+
+        // 获取当前时间戳，单位是毫秒
         long timestamp = timeGen();
 
+        // 系统时间异常
         if (timestamp < lastTimestamp) {
             System.err.printf("clock is moving backwards.  Rejecting requests until %d.", lastTimestamp);
             throw new RuntimeException(String.format(
                     "Clock moved backwards.  Refusing to generate id for %d milliseconds", lastTimestamp - timestamp));
         }
 
+        // 同个毫秒内再次获取Id
         if (lastTimestamp == timestamp) {
-            // 这个意思是说一个毫秒内最多只能有4096个数字
+            // 位运算：一个毫秒内最多只能有4096个数字
             // 无论你传递多少进来，这个位运算保证始终就是在4096这个范围内，避免你自己传递个sequence超过了4096这个范围
-            sequence = (sequence + 1) & sequenceMask;
-            if (sequence == 0) {
+            sequenceId = (sequenceId + 1) & MAX_SEQUENCE_ID;
+            if (sequenceId == 0) {
+                // 同个毫秒内序列号用完，重置为0，要获取新的时间戳
                 timestamp = tilNextMillis(lastTimestamp);
             }
         } else {
-            sequence = 0;
+            // 时间戳不一致，序列号重置为 0
+            sequenceId = 0;
         }
 
-        // 这儿记录一下最近一次生成id的时间戳，单位是毫秒
+        // 记录最近一次生成id的时间戳，单位是毫秒
         lastTimestamp = timestamp;
 
-        // 这儿就是将时间戳左移，放到 41 bit那儿；
-        // 将机房 id左移放到 5 bit那儿；
-        // 将机器id左移放到5 bit那儿；将序号放最后12 bit；
-        // 最后拼接起来成一个 64 bit的二进制数字，转换成 10 进制就是个 long 型
-        return ((timestamp - twepoch) << timestampLeftShift) | (datacenterId << datacenterIdShift)
-                | (workerId << workerIdShift) | sequence;
+        // 将时间戳左移，放到 41bit 那儿；
+        // 将机房 id 左移，放到 5bit 那儿；
+        // 将机器 id 左移，放到 5bit 那儿；
+        // 将序列号，放到最后 12bit；
+        // 最后拼接成一个 64bit 的二进制数字，转换成 10 进制就是个 long 型
+        return ((timestamp - EPOCH) << TIMESTAMP_LEFT_SHIFT) | (dataCenterId << DATA_CENTER_ID_SHIFT)
+                | (workerId << WORKER_ID_SHIFT) | sequenceId;
     }
 
     private long tilNextMillis(long lastTimestamp) {
@@ -112,11 +155,10 @@ public class GlobalIdGenerator {
         return System.currentTimeMillis();
     }
 
-    // ---------------测试---------------
     public static void main(String[] args) {
-        GlobalIdGenerator worker = new GlobalIdGenerator(1, 1, 1);
+        GlobalIdGenerator generator = new GlobalIdGenerator(0, 0, 0);
         for (int i = 0; i < 30; i++) {
-            System.out.println(worker.nextId());
+            System.out.println(generator.nextId());
         }
     }
 
