@@ -1,5 +1,13 @@
 package com.starriddle.starter.java.multithread;
 
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CountDownLatch;
+
 /**
  * snowflake：twitter 开源的分布式 id 生成算法<p/>
  * 一个 64 位的 long 型的 id：<br>
@@ -83,7 +91,30 @@ public class GlobalIdGenerator {
      */
     private long lastTimestamp = -1L;
 
-    public GlobalIdGenerator(long dataCenterId, long workerId, long sequenceId) {
+    private static GlobalIdGenerator instance = null;
+
+    public static GlobalIdGenerator getInstance(long dataCenterId, long workerId) {
+        if (instance == null) {
+            createInstance(dataCenterId, workerId);
+        }
+        return instance;
+    }
+
+    private static synchronized void createInstance(long dataCenterId, long workerId) {
+        if (instance == null) {
+            instance = new GlobalIdGenerator(dataCenterId, workerId, 0);
+        }
+    }
+
+    public static long generate() {
+        if (instance == null) {
+            System.err.println("GlobalIdGenerator.instance is not created!");
+            return -1L;
+        }
+        return instance.nextId();
+    }
+
+    private GlobalIdGenerator(long dataCenterId, long workerId, long sequenceId) {
         // 合理性检查：要求传递进来的机房id和机器id不能超过32，不能小于0
         if (workerId > MAX_WORKER_ID || workerId < 0) {
             throw new IllegalArgumentException(
@@ -105,7 +136,7 @@ public class GlobalIdGenerator {
         this.sequenceId = sequenceId;
     }
 
-    public synchronized long nextId() {
+    private synchronized long nextId() {
 
         // 获取当前时间戳，单位是毫秒
         long timestamp = timeGen();
@@ -155,10 +186,51 @@ public class GlobalIdGenerator {
         return System.currentTimeMillis();
     }
 
+    /**
+     * 高并发测试
+     *
+     * @param args
+     */
     public static void main(String[] args) {
-        GlobalIdGenerator generator = new GlobalIdGenerator(0, 0, 0);
-        for (int i = 0; i < 30; i++) {
-            System.out.println(generator.nextId());
+        GlobalIdGenerator.getInstance(0, 0);
+
+        int number = 100;
+
+        final CountDownLatch syncLatch = new CountDownLatch(number);
+        final CountDownLatch mainLatch = new CountDownLatch(number);
+        Set<Long> set = new ConcurrentSkipListSet<>();
+        Map<Long,String> msg = new ConcurrentSkipListMap<>();
+
+        for (int i = 0; i < number; i++) {
+            new Thread(() -> {
+                syncLatch.countDown();
+                try {
+                    syncLatch.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                Set<Long> currentSet = new HashSet<>();
+                long start = System.currentTimeMillis();
+                for (long j = 0; j < number; j++) {
+                    currentSet.add(GlobalIdGenerator.generate());
+                }
+                long end = System.currentTimeMillis();
+                msg.put(Thread.currentThread().getId(), currentSet.size() + "—— " + start + " - " + end + " = " + (end -start));
+                set.addAll(currentSet);
+                mainLatch.countDown();
+            }).start();
+        }
+        try {
+            mainLatch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        for (Entry<Long, String> entry : msg.entrySet()){
+            System.out.printf("%4d : %s \n", entry.getKey(), entry.getValue());
+        }
+        System.out.println("total id : " + set.size());
+        for (long id : set) {
+            System.out.println(id);
         }
     }
 
