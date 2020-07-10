@@ -42,3 +42,7 @@ RemoteSystemsTempFiles/
 .ds_store
 ._*
 Thumbs.db
+
+### leetcode
+/src/main/java/com/starriddle/starter/java/leetcode/editor/cn/all.json
+/src/main/java/com/starriddle/starter/java/leetcode/editor/cn/translation.json
