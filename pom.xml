@@ -81,13 +81,13 @@
                         也可在此处自定义
                         如未定义，3.8(20180726) 以前 默认 1.5，以后 默认 1.6
                      -->
-                    <source>1.8</source>
+                    <source>11</source>
                     <!--
                         可用专属表达式定义： ${maven.compiler.target}
                         也可在此处自定义
                         如未定义，3.8(20180726) 以前 默认 1.5，以后 默认 1.6
                      -->
-                    <target>1.8</target>
+                    <target>11</target>
                     <!-- 默认值可用表达式定义： ${project.build.sourceEncoding}
                         也可用专属表达式定义： ${encoding}
                         也可在此处自定义
